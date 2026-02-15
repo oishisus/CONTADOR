@@ -72,6 +72,14 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# ===== FOTO HEADER =====
+foto_path = Path("assets/pareja.jpg")
+
+if foto_path.exists():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image(str(foto_path), use_container_width=True)
+
 # ===== CONTADOR =====
 contador_placeholder = st.empty()
 
