@@ -1,50 +1,59 @@
 import streamlit as st
 from datetime import datetime
 import json
-import time
 import random
 from pathlib import Path
+from streamlit_autorefresh import st_autorefresh
 
 st.set_page_config(page_title="Reencuentro 💕", page_icon="💖", layout="centered", initial_sidebar_state="collapsed")
 
-# CSS personalizado para mejor aspecto
+# Auto refresco cada 1 segundo
+st_autorefresh(interval=1000, key="contador")
+
+# CSS personalizado
 st.markdown("""
     <style>
-    .title-container {
+    body { background-color: #0a0e27; }
+    .header-container {
         text-align: center;
-        margin: 20px 0;
+        padding: 20px 0;
     }
-    .title-container h1 {
+    .header-title {
         color: #FF1493;
-        font-size: 2.5em;
+        font-size: 2.8em;
+        font-weight: bold;
         margin: 0;
     }
-    .subtitle-text {
-        color: #FF69B4;
-        font-size: 1.2em;
-        font-weight: bold;
+    .contador-small {
+        font-size: 1.5em;
+        color: #FF1493;
         text-align: center;
-        margin: 10px 0 20px 0;
-    }
-    .contador-box {
-        background: linear-gradient(135deg, #FF1493 0%, #FF69B4 100%);
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        color: white;
-        margin: 20px 0;
-    }
-    .contador-text {
-        font-size: 2em;
         font-weight: bold;
         margin: 10px 0;
     }
-    .foto-container {
-        margin: 20px 0;
+    .mensaje-especial {
+        color: #FF69B4;
+        font-size: 1.1em;
         text-align: center;
+        font-weight: bold;
+        margin: 15px 0;
     }
-    .notes-section {
-        margin: 30px 0;
+    .nota-random {
+        background-color: #1a2647;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+        border-left: 4px solid #FF1493;
+    }
+    .nota-header {
+        color: #FF1493;
+        font-weight: bold;
+        font-size: 0.9em;
+        margin-bottom: 8px;
+    }
+    .nota-texto {
+        color: #e0e0e0;
+        font-size: 0.95em;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -56,7 +65,7 @@ DATOS_DIR.mkdir(exist_ok=True)
 MENSAJE_FILE = DATOS_DIR / "mensaje_principal.json"
 NOTAS_FILE = DATOS_DIR / "notas.json"
 
-# Funciones para manejar mensajes
+# Funciones
 def cargar_mensaje():
     if MENSAJE_FILE.exists():
         with open(MENSAJE_FILE, 'r', encoding='utf-8') as f:
@@ -68,7 +77,6 @@ def guardar_mensaje(texto):
     with open(MENSAJE_FILE, 'w', encoding='utf-8') as f:
         json.dump({"texto": texto}, f, ensure_ascii=False, indent=2)
 
-# Funciones para manejar notas
 def cargar_notas():
     if NOTAS_FILE.exists():
         with open(NOTAS_FILE, 'r', encoding='utf-8') as f:
@@ -79,64 +87,35 @@ def guardar_notas(notas):
     with open(NOTAS_FILE, 'w', encoding='utf-8') as f:
         json.dump(notas, f, ensure_ascii=False, indent=2)
 
-# TÍTULO
+# ===== HEADER =====
 st.markdown("""
-    <div class='title-container'>
-        <h1>💖 Reencuentro Contador</h1>
+    <div class='header-container'>
+        <div class='header-title'>💖 Reencuentro Contador</div>
     </div>
 """, unsafe_allow_html=True)
 
-# MENSAJE ESPECIAL
-st.write("✨ Mensaje especial:")
-col_msg1, col_msg2 = st.columns([3, 1])
-with col_msg1:
-    mensaje_actual = cargar_mensaje()
-    nuevo_mensaje = st.text_input("", value=mensaje_actual, label_visibility="collapsed", placeholder="Escribe algo especial...")
-with col_msg2:
-    if st.button("💾 Actualizar", use_container_width=True):
-        guardar_mensaje(nuevo_mensaje)
-        st.success("✅ Actualizado")
-        st.rerun()
+# Foto en header
+foto_path = Path("assets/pareja.jpg")
+if foto_path.exists():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image(str(foto_path), use_container_width=True)
 
-st.markdown(f"<p class='subtitle-text'>{cargar_mensaje()}</p>", unsafe_allow_html=True)
-
-st.divider()
-
-# CONTADOR EN TIEMPO REAL
-st.subheader("⏳ Tiempo restante")
-placeholder_contador = st.empty()
-
+# ===== CONTADOR =====
 ahora = datetime.now()
 diferencia = fecha_final - ahora
 
 if diferencia.total_seconds() <= 0:
-    st.success("💖 ¡Hoy es el día! 💖", icon="✅")
+    st.markdown("<div class='contador-small'>💖 ¡Hoy es el día! 💖</div>", unsafe_allow_html=True)
 else:
-    while True:
-        ahora = datetime.now()
-        diferencia = fecha_final - ahora
-        
-        if diferencia.total_seconds() <= 0:
-            placeholder_contador.success("💖 ¡Hoy es el día! 💖", icon="✅")
-            break
-        
-        dias = diferencia.days
-        horas, resto = divmod(diferencia.seconds, 3600)
-        minutos, segundos = divmod(resto, 60)
-        
-        placeholder_contador.markdown(f"""
-            <div class='contador-box'>
-                <div class='contador-text'>⏳ {dias}d : {horas}h : {minutos}m : {segundos}s</div>
-                <p>Cada segundo nos acerca más 💕</p>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        time.sleep(1)
-        st.rerun()
+    dias = diferencia.days
+    horas, resto = divmod(diferencia.seconds, 3600)
+    minutos, segundos = divmod(resto, 60)
+    st.markdown(f"<div class='contador-small'>⏳ {dias}d : {horas}h : {minutos}m : {segundos}s</div>", unsafe_allow_html=True)
 
 st.divider()
 
-# NOTAS ALEATORIAS
+# ===== NOTAS ALEATORIAS =====
 st.subheader("💭 NOTAS ALEATORIAS")
 notas = cargar_notas()
 
@@ -144,13 +123,11 @@ if notas:
     lista_notas = list(notas.items())
     random.shuffle(lista_notas)
     
-    for clave, nota in lista_notas[:3]:  # Mostrar solo 3 notas aleatorias
+    for clave, nota in lista_notas[:3]:
         st.markdown(f"""
-        <div style='background-color: #f0f2f6; padding: 15px; border-radius: 8px; margin: 10px 0;'>
-            <p style='margin: 0; color: #FF1493; font-weight: bold;'>
-                📅 {nota.get('fecha', 'N/A')} • {nota.get('usuario', 'N/A')} • {nota.get('hora', 'N/A')}
-            </p>
-            <p style='margin: 10px 0 0 0; color: #333;'>{nota['texto']}</p>
+        <div class='nota-random'>
+            <div class='nota-header'>📅 {nota.get('fecha', 'N/A')} • {nota.get('usuario', 'N/A')} • {nota.get('hora', 'N/A')}</div>
+            <div class='nota-texto'>{nota['texto']}</div>
         </div>
         """, unsafe_allow_html=True)
 else:
@@ -158,24 +135,14 @@ else:
 
 st.divider()
 
-# FOTO
-st.subheader("📸 Nosotros")
-foto_path = Path("assets/pareja.jpg")
-if foto_path.exists():
-    st.image(str(foto_path), use_container_width=True)
-else:
-    st.info("📸 Sube pareja.jpg a assets/")
+# ===== AGREGAR NOTA =====
+st.subheader("✍️ AGREGAR NOTA")
 
-st.divider()
-
-# NOTAS DIARIAS
-st.subheader("✍️ NOTAS DIARIAS")
-
-col_user, col_empty = st.columns([1, 2])
+col_user, col_space = st.columns([1, 2])
 with col_user:
-    usuario = st.selectbox("¿Quién escribe?", ["Belandria", "Segovia"], label_visibility="collapsed")
+    usuario = st.selectbox("¿Quién?", ["Belandria", "Segovia"], label_visibility="collapsed")
 
-nota_texto = st.text_area("Escribe tu nota:", height=100, label_visibility="collapsed", placeholder="Escribe tu nota aquí...")
+nota_texto = st.text_area("Tu nota:", height=100, label_visibility="collapsed", placeholder="Escribe tu nota aquí...")
 
 if st.button("💾 Guardar nota", use_container_width=True):
     if nota_texto.strip():
@@ -199,7 +166,7 @@ if st.button("💾 Guardar nota", use_container_width=True):
 
 st.divider()
 
-# TODAS LAS NOTAS
+# ===== HISTORIAL =====
 st.subheader("📚 TODOS LOS REENCUENTROS")
 notas = cargar_notas()
 
