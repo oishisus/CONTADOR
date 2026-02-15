@@ -6,6 +6,12 @@ from pathlib import Path
 
 st.set_page_config(page_title="Reencuentro 💕", page_icon="💖", layout="centered", initial_sidebar_state="collapsed")
 
+# Seleccionar usuario
+st.write("👤 ¿Quién eres?")
+usuario = st.radio("Selecciona tu nombre:", ["Belandria", "Segovia"], horizontal=True, label_visibility="collapsed")
+
+st.divider()
+
 # Título con foto
 col1, col2 = st.columns([1, 1], gap="medium")
 
@@ -21,10 +27,21 @@ with col2:
 # Configuración
 fecha_final = datetime(2026, 6, 14, 0, 0, 0)
 DATOS_DIR = Path("datos_reencuentro")
-NOTAS_FILE = DATOS_DIR / "notas.json"
-
-# Crear directorios si no existen
 DATOS_DIR.mkdir(exist_ok=True)
+NOTAS_FILE = DATOS_DIR / f"notas_{usuario.lower()}.json"
+MENSAJE_FILE = DATOS_DIR / "mensaje_principal.json"
+
+# Funciones para manejar mensajes
+def cargar_mensaje():
+    if MENSAJE_FILE.exists():
+        with open(MENSAJE_FILE, 'r', encoding='utf-8') as f:
+            datos = json.load(f)
+            return datos.get("texto", "")
+    return ""
+
+def guardar_mensaje(texto):
+    with open(MENSAJE_FILE, 'w', encoding='utf-8') as f:
+        json.dump({"texto": texto}, f, ensure_ascii=False, indent=2)
 
 # Funciones para manejar notas
 def cargar_notas():
@@ -36,6 +53,22 @@ def cargar_notas():
 def guardar_notas(notas):
     with open(NOTAS_FILE, 'w', encoding='utf-8') as f:
         json.dump(notas, f, ensure_ascii=False, indent=2)
+
+# Mostrar y editar mensaje principal
+st.write("✨ Mensaje especial:")
+col_msg1, col_msg2 = st.columns([3, 1])
+
+with col_msg1:
+    mensaje_actual = cargar_mensaje()
+    nuevo_mensaje = st.text_input("", value=mensaje_actual, label_visibility="collapsed", placeholder="Escribe algo especial...")
+
+with col_msg2:
+    if st.button("💾 Actualizar", use_container_width=True):
+        guardar_mensaje(nuevo_mensaje)
+        st.success("✅ Actualizado")
+        st.rerun()
+
+st.markdown(f"<p style='text-align: center; color: #FF69B4; font-size: 18px; font-weight: bold;'>{cargar_mensaje()}</p>", unsafe_allow_html=True)
 
 st.divider()
 
@@ -76,7 +109,7 @@ else:
 st.divider()
 
 # Sección de notas diarias
-st.subheader("📝 Notas Diarias")
+st.subheader(f"📝 Mis notas ({usuario})")
 
 st.write("✍️ Añade una nota para hoy:")
 nota_texto = st.text_area("Escribe tu nota aquí", height=100, label_visibility="collapsed")
@@ -89,7 +122,8 @@ if st.button("💾 Guardar nota de hoy", use_container_width=True):
         # Guardar la nota
         notas[hoy] = {
             "texto": nota_texto,
-            "hora": datetime.now().strftime("%H:%M:%S")
+            "hora": datetime.now().strftime("%H:%M:%S"),
+            "usuario": usuario
         }
         
         guardar_notas(notas)
@@ -100,7 +134,7 @@ if st.button("💾 Guardar nota de hoy", use_container_width=True):
 
 st.divider()
 
-st.write("📚 Todas tus notas:")
+st.write("📚 Todas mis notas:")
 notas = cargar_notas()
 
 if notas:
