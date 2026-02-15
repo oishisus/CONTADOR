@@ -2,13 +2,10 @@ import streamlit as st
 from datetime import datetime
 import json
 import time
+import random
 from pathlib import Path
 
 st.set_page_config(page_title="Reencuentro 💕", page_icon="💖", layout="centered", initial_sidebar_state="collapsed")
-
-# Seleccionar usuario
-st.write("👤 ¿Quién eres?")
-usuario = st.radio("Selecciona tu nombre:", ["Belandria", "Segovia"], horizontal=True, label_visibility="collapsed")
 
 st.divider()
 
@@ -28,8 +25,8 @@ with col2:
 fecha_final = datetime(2026, 6, 14, 0, 0, 0)
 DATOS_DIR = Path("datos_reencuentro")
 DATOS_DIR.mkdir(exist_ok=True)
-NOTAS_FILE = DATOS_DIR / f"notas_{usuario.lower()}.json"
 MENSAJE_FILE = DATOS_DIR / "mensaje_principal.json"
+NOTAS_FILE = DATOS_DIR / "notas.json"
 
 # Funciones para manejar mensajes
 def cargar_mensaje():
@@ -109,41 +106,50 @@ else:
 st.divider()
 
 # Sección de notas diarias
-st.subheader(f"📝 Mis notas ({usuario})")
+st.subheader("📝 Agregar nota")
 
-st.write("✍️ Añade una nota para hoy:")
-nota_texto = st.text_area("Escribe tu nota aquí", height=100, label_visibility="collapsed")
+col_user, col_empty = st.columns([1, 2])
+with col_user:
+    usuario = st.selectbox("¿Quién escribe?", ["Belandria", "Segovia"], label_visibility="collapsed")
+
+st.write("✍️ Escribe tu nota:")
+nota_texto = st.text_area("", height=100, label_visibility="collapsed", placeholder="Escribe tu nota aquí...")
 
 if st.button("💾 Guardar nota de hoy", use_container_width=True):
     if nota_texto.strip():
         hoy = datetime.now().strftime("%Y-%m-%d")
         notas = cargar_notas()
         
+        # Crear clave única si ya existe nota de hoy
+        clave = f"{hoy}_{usuario}_{datetime.now().strftime('%H%M%S')}"
+        
         # Guardar la nota
-        notas[hoy] = {
+        notas[clave] = {
             "texto": nota_texto,
             "hora": datetime.now().strftime("%H:%M:%S"),
+            "fecha": hoy,
             "usuario": usuario
         }
         
         guardar_notas(notas)
-        st.success(f"✅ Nota guardada para {hoy}")
+        st.success(f"✅ Nota guardada por {usuario}")
         st.rerun()
     else:
         st.warning("⚠️ Por favor escribe una nota antes de guardar")
 
 st.divider()
 
-st.write("📚 Todas mis notas:")
+# Mostrar todas las notas aleatoriamente
+st.subheader("💭 REENCUENTROS")
 notas = cargar_notas()
 
 if notas:
-    # Ordenar por fecha descendente
-    fechas_ordenadas = sorted(notas.keys(), reverse=True)
+    # Obtener todas las notas y randomizar
+    lista_notas = list(notas.items())
+    random.shuffle(lista_notas)
     
-    for fecha in fechas_ordenadas:
-        nota = notas[fecha]
-        with st.expander(f"📅 {fecha} - {nota.get('hora', 'N/A')}", expanded=(fecha == datetime.now().strftime("%Y-%m-%d"))):
-            st.write(f"**Nota:** {nota['texto']}")
+    for clave, nota in lista_notas:
+        with st.expander(f"📅 {nota.get('fecha', 'N/A')} - {nota.get('usuario', 'N/A')} - {nota.get('hora', 'N/A')}"):
+            st.write(f"{nota['texto']}")
 else:
     st.info("📭 Aún no hay notas. ¡Crea la primera hoy!")
