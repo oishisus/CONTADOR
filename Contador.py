@@ -54,6 +54,17 @@ DATOS_DIR = Path("datos_reencuentro")
 DATOS_DIR.mkdir(exist_ok=True)
 NOTAS_FILE = DATOS_DIR / "notas.json"
 
+# Funciones
+def cargar_notas():
+    if NOTAS_FILE.exists():
+        with open(NOTAS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def guardar_notas(notas):
+    with open(NOTAS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(notas, f, ensure_ascii=False, indent=2)
+
 # ===== HEADER =====
 st.markdown("""
     <div class='header-container'>
@@ -61,27 +72,98 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# ===== CONTADOR EN TIEMPO REAL =====
-placeholder = st.empty()
+# ===== CONTADOR =====
+contador_placeholder = st.empty()
 
-while True:
+def actualizar_contador():
     ahora = datetime.now()
     diferencia = fecha_final - ahora
 
     if diferencia.total_seconds() <= 0:
-        placeholder.markdown(
+        contador_placeholder.markdown(
             "<div class='contador-small'>💖 ¡Hoy es el día! 💖</div>",
             unsafe_allow_html=True
         )
-        break
     else:
         dias = diferencia.days
         horas, resto = divmod(diferencia.seconds, 3600)
         minutos, segundos = divmod(resto, 60)
 
-        placeholder.markdown(
+        contador_placeholder.markdown(
             f"<div class='contador-small'>⏳ {dias}d : {horas}h : {minutos}m : {segundos}s</div>",
             unsafe_allow_html=True
         )
 
-    time.sleep(1)
+# Ejecuta contador cada vez que la app se refresca
+actualizar_contador()
+
+st.divider()
+
+# ===== NOTAS ALEATORIAS =====
+st.subheader("💭 NOTAS ALEATORIAS")
+notas = cargar_notas()
+
+if notas:
+    lista_notas = list(notas.items())
+    random.shuffle(lista_notas)
+    
+    for clave, nota in lista_notas[:3]:
+        st.markdown(f"""
+        <div class='nota-random'>
+            <div class='nota-header'>📅 {nota.get('fecha', 'N/A')} • {nota.get('usuario', 'N/A')} • {nota.get('hora', 'N/A')}</div>
+            <div class='nota-texto'>{nota['texto']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+else:
+    st.info("📭 Aún no hay notas")
+
+st.divider()
+
+# ===== AGREGAR NOTA =====
+st.subheader("✍️ AGREGAR NOTA")
+
+col_user, col_space = st.columns([1, 2])
+with col_user:
+    usuario = st.selectbox("¿Quién?", ["Belandria", "Segovia"], label_visibility="collapsed")
+
+nota_texto = st.text_area("Tu nota:", height=100, label_visibility="collapsed", placeholder="Escribe tu nota aquí...")
+
+if st.button("💾 Guardar nota", use_container_width=True):
+    if nota_texto.strip():
+        hoy = datetime.now().strftime("%Y-%m-%d")
+        notas = cargar_notas()
+        clave = f"{hoy}_{usuario}_{datetime.now().strftime('%H%M%S')}"
+        
+        notas[clave] = {
+            "texto": nota_texto,
+            "hora": datetime.now().strftime("%H:%M:%S"),
+            "fecha": hoy,
+            "usuario": usuario
+        }
+        
+        guardar_notas(notas)
+        st.success(f"✅ Nota guardada por {usuario}")
+        st.balloons()
+        st.rerun()
+    else:
+        st.warning("⚠️ Escribe una nota antes de guardar")
+
+st.divider()
+
+# ===== HISTORIAL =====
+st.subheader("📚 TODOS LOS REENCUENTROS")
+notas = cargar_notas()
+
+if notas:
+    lista_notas = list(notas.items())
+    lista_notas.sort(key=lambda x: x[1].get('fecha', ''), reverse=True)
+    
+    for clave, nota in lista_notas:
+        with st.expander(f"📅 {nota.get('fecha', 'N/A')} • {nota.get('usuario', 'N/A')} • {nota.get('hora', 'N/A')}"):
+            st.write(nota['texto'])
+else:
+    st.info("📭 Sin reencuentros aún")
+
+# Refresca cada segundo sin paquetes externos
+time.sleep(1)
+st.rerun()
