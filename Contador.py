@@ -1,16 +1,16 @@
 import streamlit as st
 from datetime import datetime
 import json
-import os
+import time
 from pathlib import Path
 
-st.set_page_config(page_title="Reencuentro 💕", page_icon="💖", layout="wide")
+st.set_page_config(page_title="Reencuentro 💕", page_icon="💖", layout="centered", initial_sidebar_state="collapsed")
 
 # Título con foto
-col1, col2 = st.columns([2, 1])
+col1, col2 = st.columns([1, 1], gap="medium")
 
 with col1:
-    st.title("💖 Cuenta regresiva para nuestro reencuentro")
+    st.title("💖 Reencuentro")
 
 with col2:
     # Mostrar foto si existe
@@ -39,8 +39,10 @@ def guardar_notas(notas):
 
 st.divider()
 
-# Contar regresiva
+# Contar regresiva en tiempo real
 st.subheader("⏳ Tiempo restante")
+
+placeholder_contador = st.empty()
 
 ahora = datetime.now()
 diferencia = fecha_final - ahora
@@ -48,56 +50,66 @@ diferencia = fecha_final - ahora
 if diferencia.total_seconds() <= 0:
     st.success("💖 ¡Hoy es el día! 💖", icon="✅")
 else:
-    dias = diferencia.days
-    horas, resto = divmod(diferencia.seconds, 3600)
-    minutos, segundos = divmod(resto, 60)
-    
-    st.markdown(
-        f"<h2 style='text-align: center; color: #FF1493;'>"
-        f"⏳ {dias}d : {horas}h : {minutos}m : {segundos}s"
-        f"</h2><p style='text-align: center; color: #FF69B4;'>Cada segundo nos acerca más 💕</p>",
-        unsafe_allow_html=True
-    )
+    # Mostrar el contador y actualizarlo cada segundo
+    while True:
+        ahora = datetime.now()
+        diferencia = fecha_final - ahora
+        
+        if diferencia.total_seconds() <= 0:
+            placeholder_contador.success("💖 ¡Hoy es el día! 💖", icon="✅")
+            break
+        
+        dias = diferencia.days
+        horas, resto = divmod(diferencia.seconds, 3600)
+        minutos, segundos = divmod(resto, 60)
+        
+        placeholder_contador.markdown(
+            f"<h2 style='text-align: center; color: #FF1493;'>"
+            f"⏳ {dias}d : {horas}h : {minutos}m : {segundos}s"
+            f"</h2><p style='text-align: center; color: #FF69B4;'>Cada segundo nos acerca más 💕</p>",
+            unsafe_allow_html=True
+        )
+        
+        time.sleep(1)
+        st.rerun()
 
 st.divider()
 
 # Sección de notas diarias
 st.subheader("📝 Notas Diarias")
 
-col1, col2 = st.columns(2)
+st.write("✍️ Añade una nota para hoy:")
+nota_texto = st.text_area("Escribe tu nota aquí", height=100, label_visibility="collapsed")
 
-with col1:
-    st.write("✍️ Añade una nota para hoy:")
-    nota_texto = st.text_area("Escribe tu nota aquí", height=120, key="nota_input")
-    
-    if st.button("💾 Guardar nota de hoy", use_container_width=True):
-        if nota_texto.strip():
-            hoy = datetime.now().strftime("%Y-%m-%d")
-            notas = cargar_notas()
-            
-            # Guardar la nota
-            notas[hoy] = {
-                "texto": nota_texto,
-                "hora": datetime.now().strftime("%H:%M:%S")
-            }
-            
-            guardar_notas(notas)
-            st.success(f"✅ Nota guardada para {hoy}")
-            st.rerun()
-        else:
-            st.warning("⚠️ Por favor escribe una nota antes de guardar")
-
-with col2:
-    st.write("📚 Todas tus notas:")
-    notas = cargar_notas()
-    
-    if notas:
-        # Ordenar por fecha descendente
-        fechas_ordenadas = sorted(notas.keys(), reverse=True)
+if st.button("💾 Guardar nota de hoy", use_container_width=True):
+    if nota_texto.strip():
+        hoy = datetime.now().strftime("%Y-%m-%d")
+        notas = cargar_notas()
         
-        for fecha in fechas_ordenadas:
-            nota = notas[fecha]
-            with st.expander(f"📅 {fecha} - {nota.get('hora', 'N/A')}", expanded=(fecha == datetime.now().strftime("%Y-%m-%d"))):
-                st.write(f"**Nota:** {nota['texto']}")
+        # Guardar la nota
+        notas[hoy] = {
+            "texto": nota_texto,
+            "hora": datetime.now().strftime("%H:%M:%S")
+        }
+        
+        guardar_notas(notas)
+        st.success(f"✅ Nota guardada para {hoy}")
+        st.rerun()
     else:
-        st.info("📭 Aún no hay notas. ¡Crea la primera hoy!")
+        st.warning("⚠️ Por favor escribe una nota antes de guardar")
+
+st.divider()
+
+st.write("📚 Todas tus notas:")
+notas = cargar_notas()
+
+if notas:
+    # Ordenar por fecha descendente
+    fechas_ordenadas = sorted(notas.keys(), reverse=True)
+    
+    for fecha in fechas_ordenadas:
+        nota = notas[fecha]
+        with st.expander(f"📅 {fecha} - {nota.get('hora', 'N/A')}", expanded=(fecha == datetime.now().strftime("%Y-%m-%d"))):
+            st.write(f"**Nota:** {nota['texto']}")
+else:
+    st.info("📭 Aún no hay notas. ¡Crea la primera hoy!")
