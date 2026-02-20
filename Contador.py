@@ -49,7 +49,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Configuración
-fecha_final = datetime(2026, 6, 14, 0, 0, 0)
+fecha_final = datetime(2026, 9, 14, 0, 0, 0)
 DATOS_DIR = Path("datos_reencuentro")
 DATOS_DIR.mkdir(exist_ok=True)
 NOTAS_FILE = DATOS_DIR / "notas.json"
